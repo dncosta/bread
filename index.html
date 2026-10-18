@@ -145,7 +145,7 @@
 
 @media (max-width:640px){
   .natal-banner{min-height:250px;border-radius:22px}
-  .natal-banner__content{padding:84px 24px 26px}
+  .natal-banner__content{padding:100px 24px 26px}
   .natal-banner .natal-banner__desc{font-size:17px}
   .natal-banner__star{top:30px;right:20px;width:34px;height:34px}
   .natal-banner__deco--c{display:none}
@@ -191,7 +191,7 @@
   background:radial-gradient(circle,#FFF4E2 0%,#E8B866 42%,rgba(232,184,102,0) 72%);
 }
 @media (max-width:640px){
-  .natal-banner__santa{width:108px;height:40px;top:60px}
+  .natal-banner__santa{width:100px;height:37px;top:60px}
 }
 
 /* acessibilidade: sem animações para quem prefere movimento reduzido */
@@ -984,7 +984,14 @@
       return t < T_LOW ? ALT_IN + (ALT_LOW - ALT_IN) * ease(t / T_LOW)
                        : ALT_LOW + (ALT_OUT - ALT_LOW) * ease((t - T_LOW) / (1 - T_LOW));
     }
-    function yAt(t) { return (1 - altAt(t)) * H - sh / 2 - top0; }
+    // celular: o percurso fica na faixa livre entre as luzinhas e o texto (sem passar por trás do título)
+    var K = banner.querySelector('.natal-banner__kicker').getBoundingClientRect().top - banner.getBoundingClientRect().top;
+    var cmin = 44 + sh / 2, cmax = Math.max(cmin, K - 11 - sh / 2);
+    function yAt(t) {
+      if (!mobile) return (1 - altAt(t)) * H - sh / 2 - top0;
+      var f = t < T_LOW ? 0.45 + 0.55 * ease(t / T_LOW) : 1 - ease((t - T_LOW) / (1 - T_LOW));   // desce um pouco e volta a subir
+      return cmin + f * (cmax - cmin) - sh / 2 - top0;
+    }
     for (var i = 0; i <= N; i++) {
       var t = i / N;
       var x = x0 + (x1 - x0) * t;
