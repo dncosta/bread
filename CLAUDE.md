@@ -130,6 +130,14 @@ próprio (separado do principal), o HTML fica dentro de `.hero` logo após o
 não fizer mais sentido mostrá-lo, troque por outra coisa ou remova os três
 blocos (`<style>`, HTML, `<script>`) juntos; não deixe um órfão.
 
+O banner é clicável: leva até a seção `#panetones` (mesmo cálculo de scroll
+que os `.nav-tab` usam, descontando a altura do `.nav-wrap`), tem
+`role="button"`, `tabindex="0"` e responde a Enter/Espaço também — isso está
+no mesmo `<script>` do banner, logo após o `if (!banner) return;`. Se a
+seção de destino do banner mudar (ex.: deixar de ser produtos de Natal), opte
+por atualizar o `getElementById('panetones')` para o novo alvo em vez de só
+remover o link.
+
 ## Busca
 
 O campo `#search-input` (dentro de `.nav-wrap`, acima da nav) filtra os
