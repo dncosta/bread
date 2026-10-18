@@ -122,8 +122,10 @@ funciona, mas fica mais bonito se o assunto principal estiver centralizado.
 
 No lugar do antigo botão "Pedir pelo WhatsApp" do hero, hoje fica o
 `.natal-banner`: seção decorativa com luzes piscando, neve animada em
-`<canvas>` e texto com efeito shimmer, implementada em CSS/SVG/Canvas puro
-(sem dependências externas além das fontes Libre Baskerville e Inter,
+`<canvas>`, texto com efeito shimmer e um trenó com Papai Noel + renas (SVG
+animado via Web Animations API) que cruza o banner periodicamente, soltando
+um rastro de poeira dourada — tudo em CSS/SVG/Canvas puro (sem dependências
+externas além das fontes Libre Baskerville e Inter,
 carregadas junto com as demais Google Fonts). O CSS dele vive num `<style>`
 próprio (separado do principal), o HTML fica dentro de `.hero` logo após o
 `.hero-desc`, e o JS é o segundo `<script>` do `<body>`. É sazonal — quando
