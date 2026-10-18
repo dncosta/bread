@@ -12,21 +12,37 @@ Site de cardápio da Sarah Pães Artesanais, servido via GitHub Pages no domíni
   ficam embutidas no próprio `index.html` como `data:image/jpeg;base64,...`
   dentro do `src` de cada `<img>`. Isso é intencional — não crie uma pasta
   `images/` nem aponte `src` para um caminho relativo ou URL externa.
-- JS é vanilla, inline no final do `<body>` — só implementa a nav sticky com
-  scroll-spy (destaca a categoria visível) e o scroll suave ao clicar numa aba.
+- JS é vanilla, em quatro `<script>` inline no final do `<body>`. O primeiro
+  implementa a nav sticky com scroll-spy (destaca a categoria visível), o
+  scroll suave ao clicar numa aba e o evento GA `nav_tab_click`. O segundo é
+  o do banner de Natal (ver seção "Banner de Natal"). O terceiro é o filtro de
+  busca (ver seção "Busca"). O quarto gera o botão "Pedir no WhatsApp" de cada
+  card dinamicamente (ver seção "WhatsApp nos cards") e trackeia os cliques.
   Não adicione React, build tools, ou qualquer runtime.
 - O arquivo fica grande (~8-9 MB) por causa do base64. Isso é esperado e é a
   troca consciente feita para não depender de hospedagem de imagem nenhuma.
+- **Google Analytics (GA4)** está instalado via `gtag.js` no `<head>`, logo
+  após a meta description (measurement ID `G-60648533DR`). Ele já cobre
+  pageviews automaticamente. Eventos customizados disparados: `nav_tab_click`
+  (clique numa aba da nav, `event_label` = nome da categoria) e
+  `whatsapp_click` (clique em um botão de WhatsApp de card, com `location`
+  = `"card"` e `event_label` = nome do produto). Sempre que adicionar um novo
+  componente clicável relevante (ex.: um novo CTA), considere adicionar um
+  evento `gtag('event', ...)` equivalente, envolto em
+  `if (typeof gtag === 'function')`.
 
 ## Estrutura da página
 
-1. **Hero** (`.hero`): logo, título, descrição curta, botão "Pedir pelo
-   WhatsApp".
-2. **Nav sticky** (`<nav class="nav" id="nav">`): um `<button class="nav-tab"
-   data-target="ID-DA-SECTION">` por categoria. O `data-target` tem que bater
-   com o `id` da `<section>` correspondente — o JS usa isso pra tudo (scroll,
-   scroll-spy, destaque da aba ativa). Não precisa registrar nada em lugar
-   nenhum além disso.
+1. **Hero** (`.hero`): logo, título, descrição curta, e atualmente o banner
+   de Natal (`.natal-banner`) no lugar onde antes ficava o botão "Pedir pelo
+   WhatsApp" (removido a pedido do cliente — ver seção "Banner de Natal").
+2. **Busca + nav sticky** (`.nav-wrap`, sticky no topo): contém o campo de
+   busca (`#search-input`) e, logo abaixo, a `<nav class="nav" id="nav">` com
+   um `<button class="nav-tab" data-target="ID-DA-SECTION">` por categoria. O
+   `data-target` tem que bater com o `id` da `<section>` correspondente — o JS
+   usa isso pra tudo (scroll, scroll-spy, destaque da aba ativa, filtro de
+   busca). Não precisa registrar nada em lugar nenhum além disso. Ver seção
+   "Busca" para o comportamento do campo.
 3. **Uma `<section id="...">` por categoria**, cada uma com:
    - `.section-head` com título da categoria.
    - `.section-body > .grid` com os cards dos produtos (`.card`).
@@ -50,6 +66,10 @@ Site de cardápio da Sarah Pães Artesanais, servido via GitHub Pages no domíni
   </div>
 </article>
 ```
+
+`.card-kit` também é usado pra peso quando faz mais sentido que "Kit com N un."
+(ex.: "250g", "500g" nos Panetones) — é só um rótulo pequeno em destaque acima
+da descrição, não precisa ser literalmente sobre kit/unidades.
 
 Para produtos com **mais de um preço** (ex.: Broa de Fubá, que vende em kits de
 15 ou 25 un.), não use `.card-price` — use `.card-price-lines` no lugar, e
@@ -97,6 +117,62 @@ errado.
 Fotos são sempre quadradas na exibição (`aspect-ratio:1/1` com
 `object-fit:cover`), então não precisam ser pré-recortadas — qualquer proporção
 funciona, mas fica mais bonito se o assunto principal estiver centralizado.
+
+## Banner de Natal
+
+No lugar do antigo botão "Pedir pelo WhatsApp" do hero, hoje fica o
+`.natal-banner`: seção decorativa com luzes piscando, neve animada em
+`<canvas>` e texto com efeito shimmer, implementada em CSS/SVG/Canvas puro
+(sem dependências externas além das fontes Libre Baskerville e Inter,
+carregadas junto com as demais Google Fonts). O CSS dele vive num `<style>`
+próprio (separado do principal), o HTML fica dentro de `.hero` logo após o
+`.hero-desc`, e o JS é o segundo `<script>` do `<body>`. É sazonal — quando
+não fizer mais sentido mostrá-lo, troque por outra coisa ou remova os três
+blocos (`<style>`, HTML, `<script>`) juntos; não deixe um órfão.
+
+## Busca
+
+O campo `#search-input` (dentro de `.nav-wrap`, acima da nav) filtra os
+produtos em tempo real, sem recarregar a página — JS no terceiro `<script>`
+do `<body>`. A cada digitação (com debounce de 120ms), ele compara o texto
+normalizado (minúsculo, sem acento) contra três campos de cada `.card`: o
+nome da categoria (`.section-title` da `.cat-section` que contém o card), o
+`.card-name` e o `alt` da foto (`.card-photo img`). **Não usa `.card-desc`**
+— descrições têm palavras demais (ex.: ingredientes) e geravam match com
+coisas sem relação (buscar "pa" batia em "parmesão" dentro da descrição do 4
+Queijos). O match em si é por palavra: a busca só bate se algum "token" do
+texto (separado por espaço/pontuação) **começa com** o termo digitado — não
+basta o termo aparecer no meio de uma palavra qualquer. Por isso adicionar um
+produto novo com nome genérico demais pode não aparecer em buscas óbvias;
+nesse caso prefira um `alt` mais descritivo (ele já deveria ser descritivo
+por causa da seção "Como adicionar uma foto de produto").
+
+- Cards sem match ganham a classe `.is-hidden` (`display:none`).
+- Uma `.cat-section` sem nenhum card visível também ganha `.is-hidden`, e o
+  `.nav-tab` correspondente (por `data-target`) some junto — assim a nav só
+  mostra categorias com resultado.
+- Se nenhum produto bate com a busca, aparece `#search-empty` ("Nenhum
+  produto encontrado.").
+- Campo vazio remove todas as classes `.is-hidden` e volta tudo ao normal.
+
+Não precisa tocar nesse script ao adicionar um produto ou categoria nova —
+ele itera `.cat-section` e `.card` dinamicamente. Dispara `gtag('event',
+'search', ...)` a cada busca ativa (guardado por `typeof gtag === 'function'`).
+
+## WhatsApp nos cards
+
+Todo `.card` ganha automaticamente um botão "Pedir no WhatsApp" no final do
+`.card-body`, inserido via JS (quarto `<script>` do `<body>`) — não adicione
+esse `<a>` manualmente no HTML de cada card. O número de telefone está
+hardcoded nesse script (`var phone = '5511968280273'`) — não há mais um botão
+de WhatsApp fixo no hero de onde lê-lo, então ao trocar o número, edite essa
+constante. O texto da mensagem é montado como
+`Olá! Gostaria de fazer um pedido de um "<nome do .card-name>".` — por isso o
+`.card-name` deve continuar sendo um nome claro e específico o bastante para
+a Sarah reconhecer o produto na mensagem recebida (ex.: "Tradicional" sozinho
+é ambíguo entre categorias, mas isso já era assim pelo design do card). Não é
+necessário tocar nesse script ao adicionar um produto novo — o botão aparece
+automaticamente para qualquer `.card` presente na página.
 
 ## Adicionando uma categoria nova
 
