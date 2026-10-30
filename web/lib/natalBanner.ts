@@ -1,3 +1,5 @@
+import { gtag } from "@/lib/gtag";
+
 /**
  * Natal banner behavior — luzinhas, neve animada em <canvas>, trenó do
  * Papai Noel e o clique que leva até #panetones. Ported ~1:1 from the
@@ -18,12 +20,10 @@ export function initNatalBanner(banner: HTMLElement): () => void {
     const offset = navWrap ? navWrap.offsetHeight : 0;
     const top = target.getBoundingClientRect().top + window.scrollY - offset - 8;
     window.scrollTo({ top, behavior: "smooth" });
-    if (typeof (window as any).gtag === "function") {
-      (window as any).gtag("event", "banner_click", {
-        event_category: "engagement",
-        event_label: "natal_panetones",
-      });
-    }
+    gtag("event", "banner_click", {
+      event_category: "engagement",
+      event_label: "natal_panetones",
+    });
   }
   function onKeydown(e: KeyboardEvent) {
     if (e.key === "Enter" || e.key === " ") {

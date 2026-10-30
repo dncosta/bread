@@ -1,6 +1,7 @@
 "use client";
 
 import { buildWhatsAppUrl } from "@/lib/whatsapp";
+import { gtag } from "@/lib/gtag";
 
 export function WhatsAppButton({
   productId,
@@ -14,13 +15,11 @@ export function WhatsAppButton({
   children: React.ReactNode;
 }) {
   function handleClick() {
-    if (typeof (window as any).gtag === "function") {
-      (window as any).gtag("event", "whatsapp_click", {
-        event_category: "engagement",
-        event_label: productName,
-        location: "card",
-      });
-    }
+    gtag("event", "whatsapp_click", {
+      event_category: "engagement",
+      event_label: productName,
+      location: "card",
+    });
     fetch("/api/track", {
       method: "POST",
       headers: { "Content-Type": "application/json" },

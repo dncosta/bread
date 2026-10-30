@@ -1,3 +1,5 @@
+import { gtag } from "@/lib/gtag";
+
 /**
  * Sticky nav scroll-spy + word-prefix search filter. Ported ~1:1 from the
  * original index.html inline scripts — operates directly on the DOM via
@@ -7,9 +9,6 @@
  */
 export function initSearchNav(): () => void {
   const teardown: Array<() => void> = [];
-  const gtag = (...args: unknown[]) => {
-    if (typeof (window as any).gtag === "function") (window as any).gtag(...args);
-  };
 
   /* ---------- Scroll-spy (nav tabs highlight as you scroll) ---------- */
   const nav = document.getElementById("nav");
