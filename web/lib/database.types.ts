@@ -102,6 +102,41 @@ export type Database = {
         }
         Relationships: []
       }
+      product_photos: {
+        Row: {
+          alt: string | null
+          created_at: string
+          id: string
+          path: string
+          position: number
+          product_id: string
+        }
+        Insert: {
+          alt?: string | null
+          created_at?: string
+          id?: string
+          path: string
+          position?: number
+          product_id: string
+        }
+        Update: {
+          alt?: string | null
+          created_at?: string
+          id?: string
+          path?: string
+          position?: number
+          product_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_photos_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_prices: {
         Row: {
           id: string
@@ -144,8 +179,6 @@ export type Database = {
           kit_label: string | null
           name: string
           note: string | null
-          photo_alt: string | null
-          photo_path: string | null
           position: number
           price_cents: number | null
           pricing_mode: string
@@ -160,8 +193,6 @@ export type Database = {
           kit_label?: string | null
           name: string
           note?: string | null
-          photo_alt?: string | null
-          photo_path?: string | null
           position?: number
           price_cents?: number | null
           pricing_mode?: string
@@ -176,8 +207,6 @@ export type Database = {
           kit_label?: string | null
           name?: string
           note?: string | null
-          photo_alt?: string | null
-          photo_path?: string | null
           position?: number
           price_cents?: number | null
           pricing_mode?: string

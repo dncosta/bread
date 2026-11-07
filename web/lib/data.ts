@@ -18,7 +18,8 @@ export async function getCategoriesWithProducts(): Promise<
       *,
       products:products!inner (
         *,
-        product_prices (*)
+        product_prices (*),
+        product_photos (*)
       )
     `
     )
@@ -37,6 +38,7 @@ export async function getCategoriesWithProducts(): Promise<
   for (const category of categories) {
     for (const product of category.products) {
       product.product_prices.sort((a, b) => a.position - b.position);
+      product.product_photos.sort((a, b) => a.position - b.position);
     }
   }
 

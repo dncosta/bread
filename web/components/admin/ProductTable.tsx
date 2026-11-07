@@ -90,7 +90,8 @@ export function ProductTable({ products, categories }: { products: AdminProduct[
           </thead>
           <tbody>
             {filtered.map((p) => {
-              const photoUrl = getPhotoUrl(p.photo_path);
+              const firstPhoto = [...p.product_photos].sort((a, b) => a.position - b.position)[0];
+              const photoUrl = getPhotoUrl(firstPhoto?.path ?? null);
               const isPending = pendingId === p.id;
               return (
                 <tr key={p.id} style={{ opacity: isPending ? 0.5 : 1 }}>

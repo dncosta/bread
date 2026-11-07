@@ -14,7 +14,7 @@ export async function getAllProducts(): Promise<AdminProduct[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("products")
-    .select(`*, product_prices (*), categories (*)`)
+    .select(`*, product_prices (*), product_photos (*), categories (*)`)
     .order("category_id")
     .order("position");
   if (error) throw new Error(error.message);
@@ -25,7 +25,7 @@ export async function getProductById(id: string): Promise<ProductWithPrices | nu
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("products")
-    .select(`*, product_prices (*)`)
+    .select(`*, product_prices (*), product_photos (*)`)
     .eq("id", id)
     .maybeSingle();
   if (error) throw new Error(error.message);

@@ -2,7 +2,13 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { createProduct, updateProduct, type ProductInput, type PriceLineInput } from "@/app/actions/products";
+import {
+  createProduct,
+  updateProduct,
+  type ProductInput,
+  type PriceLineInput,
+  type PhotoInput,
+} from "@/app/actions/products";
 import { PhotoUploader } from "./PhotoUploader";
 import { PriceLinesEditor } from "./PriceLinesEditor";
 import type { Category } from "@/lib/types";
@@ -26,8 +32,9 @@ export function ProductForm({
   const [description, setDescription] = useState(product?.description ?? "");
   const [note, setNote] = useState(product?.note ?? "");
   const [kitLabel, setKitLabel] = useState(product?.kit_label ?? "");
-  const [photoAlt, setPhotoAlt] = useState(product?.photo_alt ?? "");
-  const [photoPath, setPhotoPath] = useState<string | null>(product?.photo_path ?? null);
+  const [photos, setPhotos] = useState<PhotoInput[]>(
+    product?.product_photos.map((p) => ({ path: p.path, alt: p.alt ?? "" })) ?? []
+  );
   const [pricingMode, setPricingMode] = useState<"single" | "lines">(
     (product?.pricing_mode as "single" | "lines") ?? "single"
   );
@@ -49,8 +56,7 @@ export function ProductForm({
       description,
       note,
       kitLabel,
-      photoAlt,
-      photoPath,
+      photos,
       pricingMode,
       price,
       priceLines,
@@ -101,30 +107,18 @@ export function ProductForm({
         <input id="note" type="text" value={note} onChange={(e) => setNote(e.target.value)} />
       </div>
 
-      <div className="admin-form-row">
-        <div className="admin-field">
-          <label htmlFor="kit">Kit / peso (opcional)</label>
-          <input
-            id="kit"
-            type="text"
-            placeholder="Ex.: 250g ou Kit com 4 un."
-            value={kitLabel}
-            onChange={(e) => setKitLabel(e.target.value)}
-          />
-        </div>
-        <div className="admin-field">
-          <label htmlFor="alt">Texto alternativo da foto</label>
-          <input
-            id="alt"
-            type="text"
-            placeholder={name || "Nome do produto"}
-            value={photoAlt}
-            onChange={(e) => setPhotoAlt(e.target.value)}
-          />
-        </div>
+      <div className="admin-field">
+        <label htmlFor="kit">Kit / peso (opcional)</label>
+        <input
+          id="kit"
+          type="text"
+          placeholder="Ex.: 250g ou Kit com 4 un."
+          value={kitLabel}
+          onChange={(e) => setKitLabel(e.target.value)}
+        />
       </div>
 
-      <PhotoUploader value={photoPath} onChange={setPhotoPath} />
+      <PhotoUploader value={photos} onChange={setPhotos} productName={name} />
 
       <div className="admin-field">
         <label>Tipo de preço</label>

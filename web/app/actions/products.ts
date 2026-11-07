@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 
 export type PriceLineInput = { label: string; price: string };
+export type PhotoInput = { path: string; alt: string };
 
 export type ProductInput = {
   categoryId: string;
@@ -11,8 +12,7 @@ export type ProductInput = {
   description: string;
   note: string;
   kitLabel: string;
-  photoAlt: string;
-  photoPath: string | null;
+  photos: PhotoInput[];
   pricingMode: "single" | "lines";
   price: string; // "40,00" — only used when pricingMode === "single"
   priceLines: PriceLineInput[]; // only used when pricingMode === "lines"
@@ -48,8 +48,6 @@ export async function createProduct(input: ProductInput) {
       description: input.description,
       note: input.note || null,
       kit_label: input.kitLabel || null,
-      photo_path: input.photoPath,
-      photo_alt: input.photoAlt || input.name,
       pricing_mode: input.pricingMode,
       price_cents: priceCents,
       position: (maxPos?.position ?? -1) + 1,
@@ -68,6 +66,17 @@ export async function createProduct(input: ProductInput) {
     }));
     const { error: linesError } = await supabase.from("product_prices").insert(rows);
     if (linesError) return { error: linesError.message };
+  }
+
+  if (input.photos.length > 0) {
+    const rows = input.photos.map((photo, i) => ({
+      product_id: product.id,
+      path: photo.path,
+      alt: photo.alt || input.name,
+      position: i,
+    }));
+    const { error: photosError } = await supabase.from("product_photos").insert(rows);
+    if (photosError) return { error: photosError.message };
   }
 
   revalidatePath("/");
@@ -91,8 +100,6 @@ export async function updateProduct(id: string, input: ProductInput) {
       description: input.description,
       note: input.note || null,
       kit_label: input.kitLabel || null,
-      photo_path: input.photoPath,
-      photo_alt: input.photoAlt || input.name,
       pricing_mode: input.pricingMode,
       price_cents: priceCents,
     })
@@ -116,6 +123,30 @@ export async function updateProduct(id: string, input: ProductInput) {
     if (linesError) return { error: linesError.message };
   }
 
+  // Same wholesale-replace approach for photos, but first grab the old
+  // paths so we can clean up any that were removed — otherwise every
+  // edit that drops a photo leaks its file in Storage forever.
+  const { data: oldPhotos } = await supabase.from("product_photos").select("path").eq("product_id", id);
+  const { error: deletePhotosError } = await supabase.from("product_photos").delete().eq("product_id", id);
+  if (deletePhotosError) return { error: deletePhotosError.message };
+
+  if (input.photos.length > 0) {
+    const rows = input.photos.map((photo, i) => ({
+      product_id: id,
+      path: photo.path,
+      alt: photo.alt || input.name,
+      position: i,
+    }));
+    const { error: photosError } = await supabase.from("product_photos").insert(rows);
+    if (photosError) return { error: photosError.message };
+  }
+
+  const newPaths = new Set(input.photos.map((p) => p.path));
+  const removedPaths = (oldPhotos ?? []).map((p) => p.path).filter((p) => !newPaths.has(p));
+  if (removedPaths.length > 0) {
+    await supabase.storage.from("product-photos").remove(removedPaths);
+  }
+
   revalidatePath("/");
   revalidatePath("/admin/products");
   return { error: null };
@@ -133,13 +164,13 @@ export async function setProductActive(id: string, isActive: boolean) {
 export async function deleteProduct(id: string) {
   const supabase = await createClient();
 
-  const { data: product } = await supabase.from("products").select("photo_path").eq("id", id).maybeSingle();
+  const { data: photos } = await supabase.from("product_photos").select("path").eq("product_id", id);
 
   const { error } = await supabase.from("products").delete().eq("id", id);
   if (error) return { error: error.message };
 
-  if (product?.photo_path) {
-    await supabase.storage.from("product-photos").remove([product.photo_path]);
+  if (photos && photos.length > 0) {
+    await supabase.storage.from("product-photos").remove(photos.map((p) => p.path));
   }
 
   revalidatePath("/");

@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { formatPriceCents } from "@/lib/format";
 import { getPhotoUrl } from "@/lib/storage";
 import { WhatsAppButton } from "./WhatsAppButton";
@@ -13,8 +13,10 @@ import type { ProductWithPrices } from "@/lib/types";
 const trackedViews = new Set<string>();
 
 export function ProductCard({ product }: { product: ProductWithPrices }) {
-  const photoUrl = getPhotoUrl(product.photo_path);
+  const photos = [...product.product_photos].sort((a, b) => a.position - b.position);
   const articleRef = useRef<HTMLElement>(null);
+  const [index, setIndex] = useState(0);
+  const touchStartX = useRef<number | null>(null);
 
   useEffect(() => {
     const el = articleRef.current;
@@ -41,17 +43,65 @@ export function ProductCard({ product }: { product: ProductWithPrices }) {
     return () => observer.disconnect();
   }, [product.id]);
 
+  function go(delta: number) {
+    setIndex((i) => (i + delta + photos.length) % photos.length);
+  }
+
   return (
     <article className="card" ref={articleRef}>
       <div className="card-photo">
-        {photoUrl && (
-          <Image
-            src={photoUrl}
-            alt={product.photo_alt ?? product.name}
-            fill
-            sizes="(max-width: 640px) 50vw, 240px"
-            style={{ objectFit: "cover" }}
-          />
+        {photos.length > 0 && (
+          <div
+            className="card-photo-track"
+            onTouchStart={(e) => {
+              touchStartX.current = e.touches[0].clientX;
+            }}
+            onTouchEnd={(e) => {
+              if (touchStartX.current == null) return;
+              const delta = e.changedTouches[0].clientX - touchStartX.current;
+              if (Math.abs(delta) > 40) go(delta < 0 ? 1 : -1);
+              touchStartX.current = null;
+            }}
+          >
+            <Image
+              src={getPhotoUrl(photos[index].path)!}
+              alt={photos[index].alt ?? product.name}
+              fill
+              sizes="(max-width: 640px) 50vw, 240px"
+              style={{ objectFit: "cover" }}
+            />
+          </div>
+        )}
+        {photos.length > 1 && (
+          <>
+            <button
+              type="button"
+              className="card-photo-arrow card-photo-arrow--prev"
+              aria-label="Foto anterior"
+              onClick={() => go(-1)}
+            >
+              ‹
+            </button>
+            <button
+              type="button"
+              className="card-photo-arrow card-photo-arrow--next"
+              aria-label="Próxima foto"
+              onClick={() => go(1)}
+            >
+              ›
+            </button>
+            <div className="card-photo-dots">
+              {photos.map((photo, i) => (
+                <button
+                  key={photo.id}
+                  type="button"
+                  className={`card-photo-dot${i === index ? " active" : ""}`}
+                  aria-label={`Ver foto ${i + 1}`}
+                  onClick={() => setIndex(i)}
+                />
+              ))}
+            </div>
+          </>
         )}
       </div>
       <div className="card-body">
