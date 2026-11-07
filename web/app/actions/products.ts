@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { parsePriceToCents } from "@/lib/price";
 
 export type PriceLineInput = { label: string; price: string };
 export type PhotoInput = { path: string; alt: string };
@@ -17,12 +18,6 @@ export type ProductInput = {
   price: string; // "40,00" — only used when pricingMode === "single"
   priceLines: PriceLineInput[]; // only used when pricingMode === "lines"
 };
-
-function parsePriceToCents(price: string): number | null {
-  const normalized = price.trim().replace(/\./g, "").replace(",", ".");
-  const n = Number(normalized);
-  return Number.isFinite(n) ? Math.round(n * 100) : null;
-}
 
 export async function createProduct(input: ProductInput) {
   const supabase = await createClient();
