@@ -1,10 +1,17 @@
 import { createClient } from "@/lib/supabase/server";
+import { sortProductsByMode } from "@/lib/sortProducts";
 import type { CategoryWithProducts } from "@/lib/types";
 
 /**
  * Active categories with their active products (and each product's price
- * lines), ordered exactly as the public site should render them. Relies on
- * RLS: the anon role only ever sees active rows.
+ * lines), ordered exactly as the public site should render them.
+ *
+ * `is_active` is filtered explicitly here rather than left to RLS: the
+ * `authenticated` role's RLS policy has no is_active restriction (the admin
+ * needs to see paused products in its own UI), so if this ever runs with an
+ * admin's session cookie attached — e.g. the admin viewing the public page
+ * in the same browser they're logged into /admin with — relying on RLS
+ * alone would leak paused products onto the public site.
  */
 export async function getCategoriesWithProducts(): Promise<
   CategoryWithProducts[]
@@ -23,8 +30,8 @@ export async function getCategoriesWithProducts(): Promise<
       )
     `
     )
-    .order("position", { ascending: true })
-    .order("position", { referencedTable: "products", ascending: true });
+    .eq("products.is_active", true)
+    .order("position", { ascending: true });
 
   if (error) {
     throw new Error(`Failed to load categories/products: ${error.message}`);
@@ -32,14 +39,12 @@ export async function getCategoriesWithProducts(): Promise<
 
   const categories = (data ?? []) as unknown as CategoryWithProducts[];
 
-  // Sort each product's price lines client-side — more reliable than
-  // chaining a second-level `.order()` on a doubly-nested PostgREST
-  // embed, and the row counts here are tiny (2-3 lines per product).
   for (const category of categories) {
     for (const product of category.products) {
       product.product_prices.sort((a, b) => a.position - b.position);
       product.product_photos.sort((a, b) => a.position - b.position);
     }
+    category.products = sortProductsByMode(category.products, category.product_sort_mode);
   }
 
   // `!inner` means a category with zero active products is dropped

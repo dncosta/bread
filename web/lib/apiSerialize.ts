@@ -9,7 +9,6 @@ export type ApiProduct = {
   note: string | null;
   kitLabel: string | null;
   isActive: boolean;
-  position: number;
   category: { id: string; slug: string; name: string };
   pricing:
     | { mode: "single"; price: string | null; priceCents: number | null }
@@ -33,7 +32,6 @@ export function serializeProduct(
     note: product.note,
     kitLabel: product.kit_label,
     isActive: product.is_active,
-    position: product.position,
     category: { id: category.id, slug: category.slug, name: category.name },
     pricing:
       product.pricing_mode === "lines"

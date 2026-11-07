@@ -3,11 +3,18 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { setProductActive, deleteProduct, reorderProduct } from "@/app/actions/products";
+import { setProductActive, deleteProduct } from "@/app/actions/products";
+import { updateCategoryProductSort, type ProductSortMode } from "@/app/actions/categories";
 import { formatPriceCents } from "@/lib/format";
 import { getPhotoUrl } from "@/lib/storage";
 import type { AdminProduct } from "@/lib/adminData";
 import type { Category } from "@/lib/types";
+
+const SORT_LABELS: Record<ProductSortMode, string> = {
+  alphabetical: "Ordem alfabética",
+  price_desc: "Preço — Maior pro Menor",
+  price_asc: "Preço — Menor pro Maior",
+};
 
 export function ProductTable({ products, categories }: { products: AdminProduct[]; categories: Category[] }) {
   const router = useRouter();
@@ -15,6 +22,9 @@ export function ProductTable({ products, categories }: { products: AdminProduct[
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "paused">("all");
   const [pendingId, setPendingId] = useState<string | null>(null);
+  const [sortSaving, setSortSaving] = useState(false);
+
+  const selectedCategory = categories.find((c) => c.id === categoryFilter) ?? null;
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -42,10 +52,11 @@ export function ProductTable({ products, categories }: { products: AdminProduct[
     router.refresh();
   }
 
-  async function handleReorder(p: AdminProduct, direction: "up" | "down") {
-    setPendingId(p.id);
-    await reorderProduct(p.id, direction);
-    setPendingId(null);
+  async function handleSortModeChange(mode: ProductSortMode) {
+    if (!selectedCategory) return;
+    setSortSaving(true);
+    await updateCategoryProductSort(selectedCategory.id, mode);
+    setSortSaving(false);
     router.refresh();
   }
 
@@ -71,7 +82,26 @@ export function ProductTable({ products, categories }: { products: AdminProduct[
           <option value="active">Só ativos</option>
           <option value="paused">Só pausados</option>
         </select>
+        {selectedCategory && (
+          <select
+            value={selectedCategory.product_sort_mode}
+            onChange={(e) => handleSortModeChange(e.target.value as ProductSortMode)}
+            disabled={sortSaving}
+            aria-label={`Ordenar produtos de ${selectedCategory.name} por`}
+          >
+            {(Object.keys(SORT_LABELS) as ProductSortMode[]).map((mode) => (
+              <option key={mode} value={mode}>
+                Ordenar por: {SORT_LABELS[mode]}
+              </option>
+            ))}
+          </select>
+        )}
       </div>
+      {selectedCategory && (
+        <p className="admin-help">
+          Essa ordem vale para todos os produtos de &quot;{selectedCategory.name}&quot; no site público.
+        </p>
+      )}
 
       {filtered.length === 0 ? (
         <div className="admin-empty">Nenhum produto encontrado.</div>
@@ -84,7 +114,6 @@ export function ProductTable({ products, categories }: { products: AdminProduct[
               <th>Categoria</th>
               <th>Preço</th>
               <th>Status</th>
-              <th>Ordem</th>
               <th></th>
             </tr>
           </thead>
@@ -116,26 +145,6 @@ export function ProductTable({ products, categories }: { products: AdminProduct[
                     <span className={`admin-badge ${p.is_active ? "admin-badge--active" : "admin-badge--paused"}`}>
                       {p.is_active ? "Ativo" : "Pausado"}
                     </span>
-                  </td>
-                  <td>
-                    <div className="admin-row-actions">
-                      <button
-                        type="button"
-                        className="admin-link-btn"
-                        disabled={isPending}
-                        onClick={() => handleReorder(p, "up")}
-                      >
-                        ↑
-                      </button>
-                      <button
-                        type="button"
-                        className="admin-link-btn"
-                        disabled={isPending}
-                        onClick={() => handleReorder(p, "down")}
-                      >
-                        ↓
-                      </button>
-                    </div>
                   </td>
                   <td>
                     <div className="admin-row-actions">

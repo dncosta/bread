@@ -22,14 +22,6 @@ export type ProductInput = {
 export async function createProduct(input: ProductInput) {
   const supabase = await createClient();
 
-  const { data: maxPos } = await supabase
-    .from("products")
-    .select("position")
-    .eq("category_id", input.categoryId)
-    .order("position", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
   const priceCents = input.pricingMode === "single" ? parsePriceToCents(input.price) : null;
   if (input.pricingMode === "single" && priceCents === null) {
     return { error: "Preço inválido." };
@@ -45,7 +37,6 @@ export async function createProduct(input: ProductInput) {
       kit_label: input.kitLabel || null,
       pricing_mode: input.pricingMode,
       price_cents: priceCents,
-      position: (maxPos?.position ?? -1) + 1,
     })
     .select("id")
     .single();
@@ -168,40 +159,6 @@ export async function deleteProduct(id: string) {
     await supabase.storage.from("product-photos").remove(photos.map((p) => p.path));
   }
 
-  revalidatePath("/");
-  revalidatePath("/admin/products");
-  return { error: null };
-}
-
-export async function reorderProduct(id: string, direction: "up" | "down") {
-  const supabase = await createClient();
-
-  const { data: product } = await supabase.from("products").select("category_id").eq("id", id).maybeSingle();
-  if (!product) return { error: "Produto não encontrado." };
-
-  const { data: siblings } = await supabase
-    .from("products")
-    .select("id, position")
-    .eq("category_id", product.category_id)
-    .order("position");
-  if (!siblings) return { error: "Falha ao carregar produtos." };
-
-  const index = siblings.findIndex((p) => p.id === id);
-  const swapIndex = direction === "up" ? index - 1 : index + 1;
-  if (index === -1 || swapIndex < 0 || swapIndex >= siblings.length) {
-    return { error: null };
-  }
-
-  const a = siblings[index];
-  const b = siblings[swapIndex];
-
-  const [{ error: errorA }, { error: errorB }] = await Promise.all([
-    supabase.from("products").update({ position: b.position }).eq("id", a.id),
-    supabase.from("products").update({ position: a.position }).eq("id", b.id),
-  ]);
-
-  const error = errorA ?? errorB;
-  if (error) return { error: error.message };
   revalidatePath("/");
   revalidatePath("/admin/products");
   return { error: null };

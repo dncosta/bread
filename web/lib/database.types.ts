@@ -81,6 +81,7 @@ export type Database = {
           id: string
           name: string
           position: number
+          product_sort_mode: string
           slug: string
           updated_at: string
         }
@@ -89,6 +90,7 @@ export type Database = {
           id?: string
           name: string
           position?: number
+          product_sort_mode?: string
           slug: string
           updated_at?: string
         }
@@ -97,6 +99,7 @@ export type Database = {
           id?: string
           name?: string
           position?: number
+          product_sort_mode?: string
           slug?: string
           updated_at?: string
         }
@@ -179,7 +182,6 @@ export type Database = {
           kit_label: string | null
           name: string
           note: string | null
-          position: number
           price_cents: number | null
           pricing_mode: string
           updated_at: string
@@ -193,7 +195,6 @@ export type Database = {
           kit_label?: string | null
           name: string
           note?: string | null
-          position?: number
           price_cents?: number | null
           pricing_mode?: string
           updated_at?: string
@@ -207,7 +208,6 @@ export type Database = {
           kit_label?: string | null
           name?: string
           note?: string | null
-          position?: number
           price_cents?: number | null
           pricing_mode?: string
           updated_at?: string

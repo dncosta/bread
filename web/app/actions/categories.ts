@@ -60,29 +60,30 @@ export async function deleteCategory(id: string) {
   return { error: null };
 }
 
-export async function reorderCategory(id: string, direction: "up" | "down") {
+/** Persists a full drag-and-drop reorder: `orderedIds` is every category id in its new display order. */
+export async function reorderCategories(orderedIds: string[]) {
   const supabase = await createClient();
 
-  const { data: categories } = await supabase.from("categories").select("id, position").order("position");
-  if (!categories) return { error: "Falha ao carregar categorias." };
+  const results = await Promise.all(
+    orderedIds.map((id, index) => supabase.from("categories").update({ position: index }).eq("id", id))
+  );
+  const failed = results.find((r) => r.error);
+  if (failed?.error) return { error: failed.error.message };
 
-  const index = categories.findIndex((c) => c.id === id);
-  const swapIndex = direction === "up" ? index - 1 : index + 1;
-  if (index === -1 || swapIndex < 0 || swapIndex >= categories.length) {
-    return { error: null };
-  }
-
-  const a = categories[index];
-  const b = categories[swapIndex];
-
-  const [{ error: errorA }, { error: errorB }] = await Promise.all([
-    supabase.from("categories").update({ position: b.position }).eq("id", a.id),
-    supabase.from("categories").update({ position: a.position }).eq("id", b.id),
-  ]);
-
-  const error = errorA ?? errorB;
-  if (error) return { error: error.message };
   revalidatePath("/");
+  revalidatePath("/admin/categories");
+  return { error: null };
+}
+
+export type ProductSortMode = "alphabetical" | "price_desc" | "price_asc";
+
+export async function updateCategoryProductSort(id: string, mode: ProductSortMode) {
+  const supabase = await createClient();
+  const { error } = await supabase.from("categories").update({ product_sort_mode: mode }).eq("id", id);
+  if (error) return { error: error.message };
+
+  revalidatePath("/");
+  revalidatePath("/admin/products");
   revalidatePath("/admin/categories");
   return { error: null };
 }

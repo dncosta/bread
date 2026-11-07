@@ -28,7 +28,7 @@ export async function listApiProducts(filters: {
   search?: string;
 }): Promise<ApiProduct[]> {
   const supabase = createServiceRoleClient();
-  let query = supabase.from("products").select(PRODUCT_SELECT).order("position");
+  let query = supabase.from("products").select(PRODUCT_SELECT).order("name");
 
   if (filters.status === "active") query = query.eq("is_active", true);
   if (filters.status === "paused") query = query.eq("is_active", false);
@@ -118,14 +118,6 @@ export async function createApiProduct(input: CreateProductInput): Promise<ApiRe
 
   const supabase = createServiceRoleClient();
 
-  const { data: maxPos } = await supabase
-    .from("products")
-    .select("position")
-    .eq("category_id", category.id)
-    .order("position", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
   const { data: product, error } = await supabase
     .from("products")
     .insert({
@@ -137,7 +129,6 @@ export async function createApiProduct(input: CreateProductInput): Promise<ApiRe
       pricing_mode: pricingMode,
       price_cents: priceCents,
       is_active: input.isActive ?? true,
-      position: (maxPos?.position ?? -1) + 1,
     })
     .select("id")
     .single();
